@@ -2,6 +2,7 @@ package org.example.dao;
 
 import org.example.model.Note;
 
+import java.io.File;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,6 +15,8 @@ public class NoteDaoImpl implements NoteDao {
     private List<Note> notes = new ArrayList<>();
     private Set<Integer> generatedIds = new HashSet<>();
     private static final Random random = new Random();
+    LocalDateTime now = LocalDateTime.now();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
     private int generateId() {
         int id;
@@ -35,8 +38,10 @@ public class NoteDaoImpl implements NoteDao {
         if (labels == null || labels.isEmpty()) {
             return new ArrayList<>(notes);
         }
-        return notes.stream()
-                .filter(note -> note.getLabels().stream().anyMatch(labels::contains))
+        return notes.stream().filter(note -> note
+                        .getLabels()
+                        .stream()
+                        .anyMatch(labels::contains))
                 .collect(Collectors.toList());
     }
 
@@ -47,11 +52,13 @@ public class NoteDaoImpl implements NoteDao {
 
     @Override
     public void exportNotes(String filename) throws IOException {
-        LocalDateTime now = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
         String formattedDateTime = now.format(formatter);
-        String finalFilename = "C:\\Users\\Diu_Brando\\Desktop\\Tuca\\" + filename + "_" + formattedDateTime + ".txt";
+        String finalFilename = "exports/" + filename + "_" + formattedDateTime + ".txt";
 
+        File directory = new File("exports");
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(finalFilename))) {
             for (Note note : notes) {
                 writer.write(note.getId() + "#" + note.getText() + "\n");
@@ -69,4 +76,4 @@ public class NoteDaoImpl implements NoteDao {
             }
         }
     }
-    }
+}

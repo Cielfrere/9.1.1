@@ -1,29 +1,35 @@
 package org.example.service;
+
 import org.example.dao.NoteDao;
 import org.example.dao.NoteDaoImpl;
 import org.example.dao.Commands;
 import lombok.*;
 import org.example.model.Note;
+
 import java.io.*;
 import java.util.*;
 import java.util.logging.*;
 
 @RequiredArgsConstructor
 public class NoteServiceImpl implements NoteService {
-    private final NoteDao noteDao = new NoteDaoImpl();
-    private final Scanner scanner = new Scanner(System.in);
+    private NoteDao noteDao = new NoteDaoImpl();
+    private Scanner scanner = new Scanner(System.in);
     private static final Logger logger = Logger.getLogger(NoteServiceImpl.class.getName());
+
+    private void validateNoteText(String text) {
+        if (text.length() < 3) {
+            throw new IllegalArgumentException("Текст заметки должен быть длиннее 3 символов.");
+        }
+    }
 
     @Override
     public void createNote() {
         try {
             System.out.print("Введите заметку: ");
             String text = scanner.nextLine().trim();
-            if (text.length() < 3) {
-                throw new IllegalArgumentException("Текст заметки должен быть длиннее 3 символов.");
-            }
-
-            System.out.print("Добавить метки? Метки состоят из одного слова и могут содержать только буквы. Для добавления нескольких меток разделяйте слова пробелом: ");
+            validateNoteText(text);
+            System.out.print("Добавить метки? Метки состоят из одного слова и могут содержать только буквы." +
+                    " Для добавления нескольких меток разделяйте слова пробелом: ");
             String labelsInput = scanner.nextLine().trim();
             Set<String> labels = new HashSet<>(Arrays.asList(labelsInput.split("\\s+")));
             noteDao.validateLabels(labels);
@@ -37,17 +43,22 @@ public class NoteServiceImpl implements NoteService {
         }
     }
 
+    private Set<String> parseLabels() {
+        System.out.print("Введите метки, чтобы отобразить определенные заметки или оставьте пустым для" +
+                " отображения всех заметок: ");
+        String labelsInput = scanner.nextLine().trim();
+        Set<String> labels = new HashSet<>();
+        if (!labelsInput.isEmpty()) {
+            labels = new HashSet<>(Arrays.asList(labelsInput.split("\\s+")));
+            noteDao.validateLabels(labels);
+        }
+        return labels;
+    }
+
     @Override
     public void listNotes() {
         try {
-            System.out.print("Введите метки, чтобы отобразить определенные заметки или оставьте пустым для отображения всех заметок: ");
-            String labelsInput = scanner.nextLine().trim();
-            Set<String> labels = new HashSet<>();
-            if (!labelsInput.isEmpty()) {
-                labels = new HashSet<>(Arrays.asList(labelsInput.split("\\s+")));
-                noteDao.validateLabels(labels);
-            }
-
+            Set<String> labels = parseLabels();
             Collection<Note> notes = noteDao.getNotes(labels);
             if (notes.isEmpty()) {
                 System.out.println("Заметки не найдены.");
@@ -89,7 +100,8 @@ public class NoteServiceImpl implements NoteService {
 
     @Override
     public void start() {
-        System.out.println("Это Ваша записная книжка. Вот список доступных команд: help, note-new, note-list, note-remove, note-export, exit.");
+        System.out.println("Это Ваша записная книжка. Вот список доступных команд: help, note-new, note-list," +
+                " note-remove, note-export, exit.");
         while (true) {
             System.out.print("> ");
             String command = scanner.nextLine().trim();

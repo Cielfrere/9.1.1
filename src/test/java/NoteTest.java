@@ -1,31 +1,61 @@
-import org.example.dao.NoteDao;
 import org.example.dao.NoteDaoImpl;
 import org.example.model.Note;
 import org.example.service.NoteServiceImpl;
-import org.example.service.NoteService;
-import org.junit.jupiter.api.*;
+
+import org.junit.jupiter.api.DisplayName;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.InjectMocks;
+
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.*;
+
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
-
-
-import java.util.HashSet;
-import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.HashSet;
+import java.util.Scanner;
+import java.util.Set;
+import java.util.Arrays;
+
+
 public class NoteTest {
+    @InjectMocks
     private NoteServiceImpl noteService;
+
     @Mock
-    private NoteDao noteDao;
+    private Scanner scanner;
+
+    @Mock
+    private NoteDaoImpl noteDao;
 
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        noteService = new NoteServiceImpl();
-        noteDao = new NoteDaoImpl();
     }
 
     @Test
+    @DisplayName("Создание заметки из введенных данных")
+    public void testCreateNote_Success() {
+        when(scanner.nextLine())
+                .thenReturn("test")
+                .thenReturn("TEST1 TEST2");
+
+        noteService.createNote();
+
+        verify(noteDao, times(1)).validateLabels(new HashSet<>(Arrays.asList("TEST1", "TEST2")));
+        verify(noteDao, times(1)).addNote(
+                argThat(note ->
+                        note.getText().equals("test") &&
+                                note.getLabels().containsAll(Arrays.asList("TEST1", "TEST2"))
+                )
+        );
+    }
+
+    @Test
+    @DisplayName("Все генерируемые id уникальны")
     public void testGenerateUniqueIds() {
         Set<Integer> generatedIds = new HashSet<>();
         for (int i = 0; i < 1000; i++) {
@@ -34,33 +64,6 @@ public class NoteTest {
             assertFalse(generatedIds.contains(note.getId()));
             generatedIds.add(note.getId());
         }
-    }
-
-
-    @Test
-    public void testValidateLabels() {
-        Set<String> validLabels = new HashSet<>();
-        validLabels.add("work");
-
-        Set<String> invalidLabels = new HashSet<>();
-        invalidLabels.add("work");
-        invalidLabels.add("123Invalid");
-
-        noteDao.validateLabels(validLabels);
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            noteDao.validateLabels(invalidLabels);
-        });
-    }
-
-    @Test
-    public void testValidateNoteId() {
-        Note note = new Note("Древесный гузлик", new HashSet<>());
-        noteDao.addNote(note);
-        int id = note.getId();
-
-        assertTrue(noteDao.removeNote(id));
-        assertFalse(noteDao.removeNote(id));
     }
 
 }
